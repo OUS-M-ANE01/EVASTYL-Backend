@@ -1,6 +1,6 @@
-# EvaStyl Backend API
+# ASMA Backend API
 
-Backend API pour le site e-commerce EvaStyl - Mode & Bijoux
+Backend API pour le site e-commerce ASMA - Mode & Bijoux
 
 ## 🚀 Technologies
 
@@ -31,12 +31,12 @@ Créer un fichier `.env` à la racine du dossier backend :
 NODE_ENV=development
 PORT=5000
 
-MONGODB_URI=mongodb://localhost:27017/evastyl
+MONGODB_URI=mongodb://localhost:27017/asma
 
 JWT_SECRET=votre_secret_jwt_tres_securise
 JWT_EXPIRE=7d
 
-ADMIN_EMAIL=admin@evastyl.com
+ADMIN_EMAIL=admin@asma.com
 ADMIN_PASSWORD=Admin@123456
 
 FRONTEND_URL=http://localhost:5173
@@ -131,7 +131,7 @@ Authorization: Bearer <token>
 Après avoir exécuté `npm run seed` :
 
 ```
-Email: admin@evastyl.com
+Email: admin@asma.com
 Password: Admin@123456
 ```
 
@@ -210,4 +210,4 @@ backend/
 
 ## 📞 Support
 
-Pour toute question ou problème, contactez : admin@evastyl.com
+Pour toute question ou problème, contactez : admin@asma.com

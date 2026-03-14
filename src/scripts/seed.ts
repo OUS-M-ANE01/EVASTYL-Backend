@@ -23,8 +23,8 @@ const seedDatabase = async () => {
     // Créer l'admin (le password sera hashé automatiquement par le middleware)
     const admin = await User.create({
       prenom: 'Admin',
-      nom: 'EvaStyl',
-      email: process.env.ADMIN_EMAIL || 'admin@evastyl.com',
+      nom: 'ASMA',
+      email: process.env.ADMIN_EMAIL || 'admin@asma.com',
       password: process.env.ADMIN_PASSWORD || 'Admin@123456',
       role: 'admin',
       telephone: '+221 77 123 45 67',
@@ -118,7 +118,7 @@ const seedDatabase = async () => {
     const products = await Product.insertMany([
       {
         name: 'Robe Florale Midi',
-        brand: 'EvaStyl',
+        brand: 'ASMA',
         price: 58000,
         image: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400&h=533&fit=crop',
         category: robesCat._id,
@@ -147,7 +147,7 @@ const seedDatabase = async () => {
       },
       {
         name: 'Robe Soirée Noire',
-        brand: 'EvaStyl Premium',
+        brand: 'ASMA Premium',
         price: 95000,
         oldPrice: 120000,
         image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=400&h=533&fit=crop',
@@ -177,7 +177,7 @@ const seedDatabase = async () => {
       },
       {
         name: 'Robe Été Légère',
-        brand: 'EvaStyl',
+        brand: 'ASMA',
         price: 45000,
         image: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400&h=533&fit=crop',
         category: robesCat._id,
@@ -205,7 +205,7 @@ const seedDatabase = async () => {
       },
       {
         name: 'Manteau Laine Beige',
-        brand: 'EvaStyl',
+        brand: 'ASMA',
         price: 125000,
         image: 'https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=400&h=533&fit=crop',
         category: manteauxCat._id,
@@ -233,7 +233,7 @@ const seedDatabase = async () => {
       },
       {
         name: 'Jupe Plissée Dorée',
-        brand: 'EvaStyl',
+        brand: 'ASMA',
         price: 47000,
         image: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=400&h=533&fit=crop',
         category: robesCat._id,
@@ -248,7 +248,7 @@ const seedDatabase = async () => {
       },
       {
         name: 'Pantalon Lin Blanc',
-        brand: 'EvaStyl',
+        brand: 'ASMA',
         price: 55000,
         image: 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=400&h=533&fit=crop',
         category: pantalonsCat._id,
@@ -262,7 +262,7 @@ const seedDatabase = async () => {
       },
       {
         name: 'Chemisier Soie Rose',
-        brand: 'EvaStyl',
+        brand: 'ASMA',
         price: 37000,
         image: 'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=400&h=533&fit=crop',
         category: robesCat._id,
@@ -277,7 +277,7 @@ const seedDatabase = async () => {
       },
       {
         name: 'Manteau Long Noir',
-        brand: 'EvaStyl Premium',
+        brand: 'ASMA Premium',
         price: 118000,
         image: 'https://images.unsplash.com/photo-1548624313-0396c75e4b1a?w=400&h=533&fit=crop',
         category: manteauxCat._id,

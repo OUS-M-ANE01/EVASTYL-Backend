@@ -14,7 +14,7 @@ export const getSettings = async (req: Request, res: Response) => {
     // Si aucuns paramètres n'existent, créer les paramètres par défaut
     if (!settings) {
       settings = await Settings.create({
-        contactEmail: 'contact@evastyl.com',
+        contactEmail: 'contact@asma.com',
         contactPhone: '+33 1 42 74 59 38',
         contactAddress: '24 Rue des Francs-Bourgeois, 75003 Paris, France',
         trustStrip: [
@@ -224,7 +224,7 @@ const createDefaultContent = async (section: string) => {
         label: 'Depuis 2010',
         title: 'Notre Histoire',
         paragraphs: [
-          'EvaStyl est née d\'une passion pour la mode et les bijoux, dans un petit atelier du Marais à Paris. Ce qui a commencé comme un rêve est devenu une maison de création reconnue pour ses pièces élégantes et intemporelles.',
+          'ASMA est née d\'une passion pour la mode et les bijoux, dans un petit atelier du Marais à Paris. Ce qui a commencé comme un rêve est devenu une maison de création reconnue pour ses pièces élégantes et intemporelles.',
           'Aujourd\'hui, nous continuons de créer chaque pièce avec le même amour du détail et de la qualité, en privilégiant les matériaux nobles et le savoir-faire artisanal français.'
         ],
         image: '/eva-about.png'

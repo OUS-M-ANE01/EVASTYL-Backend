@@ -19,7 +19,7 @@ export const uploadSingle = async (req: Request, res: Response, next: NextFuncti
     }
     
     try {
-      const folder = req.body.folder || 'evastyl';
+      const folder = req.body.folder || 'asma';
       const result = await uploadToCloudinary(req.file.buffer, folder);
       
       // Retourner l'URL de l'image uploadée
@@ -60,7 +60,7 @@ export const uploadMultiple = async (req: Request, res: Response, next: NextFunc
     
     try {
       const files = req.files as Express.Multer.File[];
-      const folder = req.body.folder || 'evastyl';
+      const folder = req.body.folder || 'asma';
       
       // Upload tous les fichiers en parallèle
       const uploadPromises = files.map(file => uploadToCloudinary(file.buffer, folder));

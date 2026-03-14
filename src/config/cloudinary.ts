@@ -48,7 +48,7 @@ export const upload = multer({
 // Helper pour uploader vers Cloudinary
 export const uploadToCloudinary = (
   buffer: Buffer,
-  folder: string = 'evastyl'
+  folder: string = 'asma'
 ): Promise<any> => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(

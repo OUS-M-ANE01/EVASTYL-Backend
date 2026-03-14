@@ -5,7 +5,7 @@ mongoose.connect(process.env.MONGODB_URI).then(async () => {
   console.log('✅ Connecté à MongoDB');
   
   const User = mongoose.model('User', new mongoose.Schema({}, { strict: false }));
-  const admin = await User.findOne({ email: 'admin@evastyl.com' });
+  const admin = await User.findOne({ email: 'admin@asma.com' });
   
   console.log('\n📊 Résultat de la recherche:');
   console.log('Admin trouvé:', admin ? 'OUI ✅' : 'NON ❌');

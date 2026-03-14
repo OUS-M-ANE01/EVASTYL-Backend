@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ISiteContent extends Document {
-  section: 'hero' | 'banner' | 'about' | 'contact' | 'instagram';
+  section: 'hero' | 'banner' | 'about' | 'contact' | 'instagram' | 'featured_jewelry' | 'featured_products';
   content: any;
   isActive: boolean;
   updatedAt: Date;
@@ -12,7 +12,7 @@ const siteContentSchema = new Schema<ISiteContent>({
     type: String, 
     required: true,
     unique: true,
-    enum: ['hero', 'banner', 'about', 'contact', 'instagram']
+    enum: ['hero', 'banner', 'about', 'contact', 'instagram', 'featured_jewelry', 'featured_products']
   },
   content: { 
     type: Schema.Types.Mixed, 

@@ -32,7 +32,7 @@ const productSchema = new Schema<IProduct>(
     brand: {
       type: String,
       required: [true, 'La marque est requise'],
-      default: 'EvaStyl',
+      default: 'ASMA',
     },
     price: {
       type: Number,

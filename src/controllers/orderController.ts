@@ -86,8 +86,8 @@ export const createOrder = async (
   }
 };
 
-// @desc    Obtenir mes commandes
-// @route   GET /api/orders/my-orders
+// @desc    Obtenir mes commandes (avec pagination)
+// @route   GET /api/orders/my-orders?page=1&limit=10
 // @access  Private
 export const getMyOrders = async (
   req: AuthRequest,
@@ -95,13 +95,29 @@ export const getMyOrders = async (
   next: NextFunction
 ) => {
   try {
-    const orders = await Order.find({ user: req.user!._id })
-      .sort({ createdAt: -1 })
-      .populate('items.product');
-
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 10));
+    const skip = (page - 1) * limit;
+ 
+    const [orders, total] = await Promise.all([
+      Order.find({ user: req.user!._id })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('items.product'),
+      Order.countDocuments({ user: req.user!._id }),
+    ]);
+ 
+    const pages = Math.ceil(total / limit);
+ 
     res.json({
       success: true,
       count: orders.length,
+      total,
+      page,
+      pages,
+      hasNextPage: page < pages,
+      hasPrevPage: page > 1,
       data: orders,
     });
   } catch (error) {
@@ -144,7 +160,7 @@ export const getOrder = async (
 };
 
 // @desc    Obtenir toutes les commandes (Admin)
-// @route   GET /api/orders
+// @route   GET /api/orders?status=pending&page=1&limit=20
 // @access  Private/Admin
 export const getAllOrders = async (
   req: AuthRequest,
@@ -152,32 +168,68 @@ export const getAllOrders = async (
   next: NextFunction
 ) => {
   try {
-    const { status, page = '1', limit = '20' } = req.query;
-
+    const { status } = req.query;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    // Cap à 100 max pour éviter les requêtes abusives
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const skip = (page - 1) * limit;
+ 
     const query: any = {};
-    if (status) {
-      query.status = status;
-    }
-
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
-    const skip = (pageNum - 1) * limitNum;
-
-    const orders = await Order.find(query)
-      .populate('user', 'prenom nom email')
-      .sort({ createdAt: -1 })
-      .limit(limitNum)
-      .skip(skip);
-
-    const total = await Order.countDocuments(query);
-
+    if (status) query.status = status;
+ 
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .populate('user', 'prenom nom email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Order.countDocuments(query),
+    ]);
+ 
+    const pages = Math.ceil(total / limit);
+ 
     res.json({
       success: true,
       count: orders.length,
       total,
-      page: pageNum,
-      pages: Math.ceil(total / limitNum),
+      page,
+      pages,
+      hasNextPage: page < pages,
+      hasPrevPage: page > 1,
       data: orders,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Obtenir stats commandes (Admin)
+// @route   GET /api/orders/stats
+// @access  Private/Admin
+export const getOrderStats = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const total = await Order.countDocuments();
+    const confirmed = await Order.countDocuments({ status: 'confirmed' });
+    const pending = await Order.countDocuments({ status: 'pending' });
+    const cancelled = await Order.countDocuments({ status: 'cancelled' });
+    const delivered = await Order.countDocuments({ status: 'delivered' });
+    const totalAmount = await Order.aggregate([
+      { $group: { _id: null, sum: { $sum: '$total' } } }
+    ]);
+    res.json({
+      success: true,
+      stats: {
+        total,
+        confirmed,
+        pending,
+        cancelled,
+        delivered,
+        totalAmount: totalAmount[0]?.sum || 0,
+      },
     });
   } catch (error) {
     next(error);

@@ -37,7 +37,7 @@ export interface ISettings extends Document {
 }
 
 const settingsSchema = new Schema<ISettings>({
-  siteName: { type: String, default: 'EvaStyl' },
+  siteName: { type: String, default: 'ASMA' },
   siteDescription: { type: String, default: 'Votre destination mode pour des vêtements et bijoux raffinés' },
   contactEmail: { type: String, required: true },
   contactPhone: { type: String, required: true },

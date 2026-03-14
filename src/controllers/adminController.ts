@@ -4,6 +4,7 @@ import User from '../models/User';
 import Product from '../models/Product';
 import Order from '../models/Order';
 import Category from '../models/Category';
+import Notification from '../models/Notification';
 
 // @desc    Obtenir les statistiques globales
 // @route   GET /api/admin/stats
@@ -195,6 +196,22 @@ export const getUsers = async (
       pages: Math.ceil(total / limitNum),
       data: users,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Obtenir la liste des notifications
+// @route   GET /api/admin/notifications
+// @access  Private/Admin
+export const getNotifications = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const notifications = await Notification.find({}).sort({ createdAt: -1 }).limit(100);
+    res.json({ success: true, data: notifications });
   } catch (error) {
     next(error);
   }

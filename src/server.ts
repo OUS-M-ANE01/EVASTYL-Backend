@@ -20,6 +20,8 @@ import categoryRoutes from './routes/categoryRoutes';
 import orderRoutes from './routes/orderRoutes';
 import adminRoutes from './routes/adminRoutes';
 import uploadRoutes from './routes/uploadRoutes';
+import publicRoutes from './routes/publicRoutes';
+import paymentRoutes from './routes/paymentRoutes';
 
 // Rate limiters
 import { generalLimiter } from './middleware/rateLimiter';
@@ -37,7 +39,10 @@ app.use(compression());
 // CORS
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:5174'
+    ],
     credentials: true,
   })
 );
@@ -51,14 +56,17 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Appliquer rate limiting global
-app.use('/api/', generalLimiter);
+// Appliquer rate limiting global (sauf le webhook NabooPay)
+app.use('/api/', (req, res, next) => {
+  if (req.path === '/payment/webhook') return next();
+  return generalLimiter(req, res, next);
+});
 
 // Routes API
 app.get('/api', (req, res) => {
   res.json({
     success: true,
-    message: 'API EvaStyl - Bienvenue',
+    message: 'API ASMA - Bienvenue',
     version: '1.0.0',
   });
 });
@@ -68,7 +76,9 @@ app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/public', publicRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // Route santé
 app.get('/health', (req, res) => {
@@ -98,7 +108,7 @@ server.listen(PORT, () => {
   console.log(`
   ╔════════════════════════════════════════╗
   ║                                        ║
-  ║   🚀 EvaStyl API Server Running        ║
+  ║   🚀 ASMA API Server Running        ║
   ║                                        ║
   ║   📍 Port: ${PORT}                        ║
   ║   🌍 Mode: ${process.env.NODE_ENV || 'development'}              ║

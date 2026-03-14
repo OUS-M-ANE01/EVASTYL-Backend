@@ -1,0 +1,18 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copier package files
+COPY package*.json ./
+
+# Installer toutes les dépendances (dev inclus)
+RUN npm install
+
+# Installer TypeScript et ts-node globalement
+RUN npm install -g typescript ts-node nodemon
+
+# Exposer le port
+EXPOSE 5000
+
+# Démarrer en mode dev avec nodemon
+CMD ["npm", "run", "dev"]

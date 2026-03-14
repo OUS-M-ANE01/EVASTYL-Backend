@@ -1,5 +1,5 @@
 import express from 'express';
-import { getStats, getSalesData, getUsers } from '../controllers/adminController';
+import { getStats, getSalesData, getUsers, getNotifications } from '../controllers/adminController';
 import { 
   getSettings, 
   updateSettings,
@@ -25,6 +25,9 @@ router.use(authorize('admin'));
 router.get('/stats', getStats);
 router.get('/sales', getSalesData);
 router.get('/users', getUsers);
+
+// Notifications
+router.get('/notifications', getNotifications);
 
 // Settings
 router.get('/settings', getSettings);
