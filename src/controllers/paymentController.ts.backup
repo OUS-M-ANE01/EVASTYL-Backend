@@ -88,7 +88,7 @@ export const nabooWebhook = async (
       console.log(`[Webhook] Commande ${order._id} marquée comme payée via NabooPay`);
 
       // Envoyer email de confirmation au client
-      await sendOrderConfirmationEmail(order.shippingAddress.email, {
+      await sendOrderConfirmationEmail(order.customerEmail, {
         orderId: order._id.toString(),
         customerName: `${order.shippingAddress.prenom} ${order.shippingAddress.nom}`,
         items: order.items.map(item => ({
@@ -96,14 +96,18 @@ export const nabooWebhook = async (
           quantity: item.quantity,
           price: item.price
         })),
-        total: order.total,
-        shippingAddress: {
-          prenom: order.shippingAddress.prenom,
-          nom: order.shippingAddress.nom,
-          rue: order.shippingAddress.rue,
-          ville: order.shippingAddress.ville,
-          telephone: order.shippingAddress.telephone
-        }
+        total: order.totalAmount,
+        shippingAddress: order.shippingAddress
+      });
+        orderId: order._id.toString(),
+        customerName: `${order.shippingAddress.prenom} ${order.shippingAddress.nom}`,
+        items: order.items.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        total: order.totalAmount,
+        shippingAddress: order.shippingAddress
       });
 
       // Émettre l'événement Socket.IO vers les admins (si disponible)
@@ -333,23 +337,7 @@ export const verifyPayment = async (
       order.status = 'confirmed';
       await order.save();
 
-      await sendOrderConfirmationEmail(order.shippingAddress.email, {
-        orderId: order._id.toString(),
-        customerName: `${order.shippingAddress.prenom} ${order.shippingAddress.nom}`,
-        items: order.items.map(item => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        total: order.total,
-        shippingAddress: {
-          prenom: order.shippingAddress.prenom,
-          nom: order.shippingAddress.nom,
-          rue: order.shippingAddress.rue,
-          ville: order.shippingAddress.ville,
-          telephone: order.shippingAddress.telephone
-        }
-      });
+      sendOrderConfirmationEmail(order);
 
       return res.json({ success: true, paid: true, order });
     }

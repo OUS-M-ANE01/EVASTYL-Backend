@@ -3,7 +3,6 @@ import { validationResult } from 'express-validator';
 import Category from '../models/Category';
 import Product from '../models/Product';
 import { AppError } from '../middleware/error';
-import { AuthRequest } from '../middleware/auth';
 
 // @desc    Obtenir toutes les catégories
 // @route   GET /api/categories
@@ -14,7 +13,7 @@ export const getCategories = async (
   next: NextFunction
 ) => {
   try {
-    const categories = await Category.find({ isActive: true }).sort({ order: 1 });
+    const categories = await Category.find({ isActive: true }).sort({ name: 1 });
 
     res.json({
       success: true,
@@ -35,26 +34,55 @@ export const getCategory = async (
   next: NextFunction
 ) => {
   try {
-    const category = await Category.findOne({
-      $or: [{ _id: req.params.id }, { id: req.params.id }],
-    });
+    const category = await Category.findById(req.params.id);
 
     if (!category) {
       return next(new AppError('Catégorie introuvable', 404));
     }
 
-    // Récupérer les produits de cette catégorie
+    res.json({
+      success: true,
+      data: category,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Obtenir les produits d'une catégorie
+// @route   GET /api/categories/:id/products
+// @access  Public
+export const getCategoryProducts = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { limit = '20', page = '1' } = req.query;
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
     const products = await Product.find({
-      category: category._id,
+      category: req.params.id,
       isActive: true,
-    }).limit(12);
+    })
+      .sort({ createdAt: -1 })
+      .limit(limitNum)
+      .skip(skip);
+
+    const total = await Product.countDocuments({
+      category: req.params.id,
+      isActive: true,
+    });
 
     res.json({
       success: true,
-      data: {
-        category,
-        products,
-      },
+      count: products.length,
+      total,
+      page: pageNum,
+      pages: Math.ceil(total / limitNum),
+      data: products,
     });
   } catch (error) {
     next(error);
@@ -65,7 +93,7 @@ export const getCategory = async (
 // @route   POST /api/categories
 // @access  Private/Admin
 export const createCategory = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -93,7 +121,7 @@ export const createCategory = async (
 // @route   PUT /api/categories/:id
 // @access  Private/Admin
 export const updateCategory = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -102,14 +130,6 @@ export const updateCategory = async (
 
     if (!category) {
       return next(new AppError('Catégorie introuvable', 404));
-    }
-
-    // Si le nom a changé, mettre à jour tous les produits
-    if (req.body.name && req.body.name !== category.name) {
-      await Product.updateMany(
-        { category: category._id },
-        { categoryName: req.body.name }
-      );
     }
 
     category = await Category.findByIdAndUpdate(req.params.id, req.body, {
@@ -130,7 +150,7 @@ export const updateCategory = async (
 // @route   DELETE /api/categories/:id
 // @access  Private/Admin
 export const deleteCategory = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -142,15 +162,9 @@ export const deleteCategory = async (
     }
 
     // Vérifier s'il y a des produits dans cette catégorie
-    const productCount = await Product.countDocuments({ category: category._id });
-    
-    if (productCount > 0) {
-      return next(
-        new AppError(
-          `Impossible de supprimer cette catégorie car elle contient ${productCount} produit(s)`,
-          400
-        )
-      );
+    const productsCount = await Product.countDocuments({ category: req.params.id });
+    if (productsCount > 0) {
+      return next(new AppError('Impossible de supprimer une catégorie contenant des produits', 400));
     }
 
     await category.deleteOne();

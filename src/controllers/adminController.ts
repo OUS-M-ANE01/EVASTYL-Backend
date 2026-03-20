@@ -1,72 +1,67 @@
-import { Response, NextFunction } from 'express';
-import { AuthRequest } from '../middleware/auth';
+import { Request, Response, NextFunction } from 'express';
 import User from '../models/User';
 import Product from '../models/Product';
 import Order from '../models/Order';
 import Category from '../models/Category';
-import Notification from '../models/Notification';
 
-// @desc    Obtenir les statistiques globales
+// @desc    Obtenir les statistiques du dashboard
 // @route   GET /api/admin/stats
 // @access  Private/Admin
 export const getStats = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    // Statistiques générales
-    const totalUsers = await User.countDocuments({ role: 'client' });
-    const totalProducts = await Product.countDocuments({ isActive: true });
-    const totalOrders = await Order.countDocuments({});
-    const totalCategories = await Category.countDocuments({ isActive: true });
-
-    // Statistiques de commandes
-    const pendingOrders = await Order.countDocuments({ status: 'pending' });
-    const confirmedOrders = await Order.countDocuments({ status: 'confirmed' });
-    const shippedOrders = await Order.countDocuments({ status: 'shipped' });
-    const deliveredOrders = await Order.countDocuments({ status: 'delivered' });
+    // Statistiques générales - compter tous les utilisateurs sauf les admins
+    const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } });
+    const totalProducts = await Product.countDocuments();
+    const totalOrders = await Order.countDocuments();
+    const totalCategories = await Category.countDocuments();
 
     // Revenus
-    const paidOrders = await Order.find({ isPaid: true });
-    const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total, 0);
+    const totalRevenue = await Order.aggregate([
+      { $match: { isPaid: true } },
+      { $group: { _id: null, total: { $sum: '$total' } } }
+    ]);
 
-    // Revenus du mois en cours
-    const now = new Date();
-    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthOrders = await Order.find({
-      isPaid: true,
-      createdAt: { $gte: firstDayOfMonth },
-    });
-    const monthRevenue = monthOrders.reduce((sum, order) => sum + order.total, 0);
+    // Commandes par statut
+    const ordersByStatus = await Order.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
 
     // Produits les plus vendus
-    const topProducts = await Product.find({ isActive: true })
+    const topProducts = await Product.find()
       .sort({ sales: -1 })
       .limit(5)
-      .select('name image price sales');
+      .select('name sales price images image');
 
-    // Produits en rupture de stock ou stock faible
+    // Produits en stock faible
     const lowStockProducts = await Product.find({
-      isActive: true,
-      stock: { $lte: 5 },
+      stock: { $lte: 10 },
+      isActive: true
     })
       .sort({ stock: 1 })
-      .limit(10)
-      .select('name image stock');
+      .limit(5)
+      .select('name stock images image');
 
-    // Dernières commandes
-    const recentOrders = await Order.find({})
+    // Commandes récentes
+    const recentOrders = await Order.find()
       .sort({ createdAt: -1 })
       .limit(5)
-      .populate('user', 'prenom nom email')
-      .select('orderNumber total status createdAt isPaid');
+      .populate('user', 'prenom nom')
+      .select('orderNumber user total status createdAt isPaid');
 
-    // Nouveaux clients du mois
-    const newUsersThisMonth = await User.countDocuments({
-      role: 'client',
-      createdAt: { $gte: firstDayOfMonth },
-    });
+    // Utilisateurs récents (tous sauf admins)
+    const recentUsers = await User.find({ role: { $ne: 'admin' } })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('prenom nom email createdAt');
 
     res.json({
       success: true,
@@ -76,19 +71,24 @@ export const getStats = async (
           totalProducts,
           totalOrders,
           totalCategories,
-          totalRevenue,
-          monthRevenue,
-          newUsersThisMonth,
+          totalRevenue: totalRevenue[0]?.total || 0,
         },
-        orders: {
-          pending: pendingOrders,
-          confirmed: confirmedOrders,
-          shipped: shippedOrders,
-          delivered: deliveredOrders,
-        },
-        topProducts,
-        lowStockProducts,
+        ordersByStatus,
+        topProducts: topProducts.map(p => ({
+          _id: p._id,
+          name: p.name,
+          image: p.images?.[0] || p.image || '/placeholder-product.jpg',
+          price: p.price,
+          sales: p.sales || 0
+        })),
+        lowStockProducts: lowStockProducts.map(p => ({
+          _id: p._id,
+          name: p.name,
+          image: p.images?.[0] || p.image || '/placeholder-product.jpg',
+          stock: p.stock
+        })),
         recentOrders,
+        recentUsers,
       },
     });
   } catch (error) {
@@ -96,77 +96,155 @@ export const getStats = async (
   }
 };
 
-// @desc    Obtenir les ventes par période
-// @route   GET /api/admin/sales?period=week|month|year
+// @desc    Obtenir les données de ventes
+// @route   GET /api/admin/sales
 // @access  Private/Admin
 export const getSalesData = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { period = 'month' } = req.query;
+    const { period = '7d' } = req.query;
 
-    let startDate = new Date();
-    let groupBy: any;
+    let dateFilter: Date;
+    const now = new Date();
 
-    if (period === 'week') {
-      startDate.setDate(startDate.getDate() - 7);
-      groupBy = {
-        $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
-      };
-    } else if (period === 'month') {
-      startDate.setMonth(startDate.getMonth() - 1);
-      groupBy = {
-        $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
-      };
-    } else {
-      startDate.setFullYear(startDate.getFullYear() - 1);
-      groupBy = {
-        $dateToString: { format: '%Y-%m', date: '$createdAt' },
-      };
+    switch (period) {
+      case '24h':
+        dateFilter = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+      case 'week':
+        dateFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+      case 'month':
+        dateFilter = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case '90d':
+      case 'year':
+        dateFilter = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        dateFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     }
 
-    const salesData = await Order.aggregate([
+    // Ventes par jour
+    const salesByDayRaw = await Order.aggregate([
       {
         $match: {
           isPaid: true,
-          createdAt: { $gte: startDate },
-        },
+          createdAt: { $gte: dateFilter }
+        }
       },
       {
         $group: {
-          _id: groupBy,
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
           totalSales: { $sum: '$total' },
-          orderCount: { $sum: 1 },
-        },
+          orderCount: { $sum: 1 }
+        }
       },
       {
-        $sort: { _id: 1 },
+        $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
+      }
+    ]);
+
+    // Remplir les jours manquants avec des valeurs à 0
+    const salesByDay = [];
+    const daysToShow = period === 'week' || period === '7d' ? 7 : 
+                       period === 'month' || period === '30d' ? 30 : 365;
+    
+    for (let i = daysToShow - 1; i >= 0; i--) {
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      
+      // Chercher si on a des données pour ce jour
+      const existingData = salesByDayRaw.find((item: any) => 
+        item._id.year === year && 
+        item._id.month === month && 
+        item._id.day === day
+      );
+      
+      salesByDay.push({
+        _id: { year, month, day },
+        totalSales: existingData ? existingData.totalSales : 0,
+        orderCount: existingData ? existingData.orderCount : 0
+      });
+    }
+
+    // Ventes par catégorie
+    const salesByCategory = await Order.aggregate([
+      {
+        $match: {
+          isPaid: true,
+          createdAt: { $gte: dateFilter }
+        }
       },
+      { $unwind: '$items' },
+      {
+        $lookup: {
+          from: 'products',
+          localField: 'items.product',
+          foreignField: '_id',
+          as: 'product'
+        }
+      },
+      { $unwind: '$product' },
+      {
+        $lookup: {
+          from: 'categories',
+          localField: 'product.category',
+          foreignField: '_id',
+          as: 'category'
+        }
+      },
+      { $unwind: '$category' },
+      {
+        $group: {
+          _id: '$category.name',
+          totalSales: { $sum: { $multiply: ['$items.price', '$items.quantity'] } },
+          itemsSold: { $sum: '$items.quantity' }
+        }
+      },
+      { $sort: { totalSales: -1 } }
     ]);
 
     res.json({
       success: true,
-      data: salesData,
+      data: {
+        salesByDay,
+        salesByCategory,
+        period,
+      },
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Obtenir les utilisateurs
+// @desc    Obtenir la liste des utilisateurs
 // @route   GET /api/admin/users
 // @access  Private/Admin
 export const getUsers = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { page = '1', limit = '20', search } = req.query;
+    const { page = '1', limit = '20', search, role } = req.query;
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
 
-    const query: any = { role: 'client' };
+    // Construire la requête
+    const query: any = {};
 
     if (search) {
       query.$or = [
@@ -176,17 +254,27 @@ export const getUsers = async (
       ];
     }
 
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
-    const skip = (pageNum - 1) * limitNum;
+    if (role) {
+      query.role = role;
+    }
 
     const users = await User.find(query)
+      .select('-password')
       .sort({ createdAt: -1 })
       .limit(limitNum)
-      .skip(skip)
-      .select('-password');
+      .skip(skip);
 
     const total = await User.countDocuments(query);
+
+    // Statistiques des utilisateurs
+    const userStats = await User.aggregate([
+      {
+        $group: {
+          _id: '$role',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
 
     res.json({
       success: true,
@@ -195,23 +283,76 @@ export const getUsers = async (
       page: pageNum,
       pages: Math.ceil(total / limitNum),
       data: users,
+      stats: userStats,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Obtenir la liste des notifications
+// @desc    Obtenir les notifications admin
 // @route   GET /api/admin/notifications
 // @access  Private/Admin
 export const getNotifications = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const notifications = await Notification.find({}).sort({ createdAt: -1 }).limit(100);
-    res.json({ success: true, data: notifications });
+    // Commandes en attente
+    const pendingOrders = await Order.countDocuments({ status: 'pending' });
+
+    // Produits en rupture de stock
+    const outOfStockProducts = await Product.countDocuments({
+      stock: { $lte: 5 },
+      isActive: true
+    });
+
+    // Nouveaux utilisateurs aujourd'hui (tous sauf admins)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const newUsersToday = await User.countDocuments({
+      createdAt: { $gte: today },
+      role: { $ne: 'admin' }
+    });
+
+    // Commandes récentes non traitées
+    const recentUnprocessedOrders = await Order.find({
+      status: 'pending',
+      createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+    })
+    .populate('user', 'prenom nom email')
+    .sort({ createdAt: -1 })
+    .limit(5);
+
+    const notifications = [
+      {
+        type: 'orders',
+        title: 'Commandes en attente',
+        count: pendingOrders,
+        priority: pendingOrders > 10 ? 'high' : 'medium',
+      },
+      {
+        type: 'stock',
+        title: 'Produits en rupture de stock',
+        count: outOfStockProducts,
+        priority: outOfStockProducts > 0 ? 'high' : 'low',
+      },
+      {
+        type: 'users',
+        title: 'Nouveaux utilisateurs aujourd\'hui',
+        count: newUsersToday,
+        priority: 'low',
+      },
+    ];
+
+    res.json({
+      success: true,
+      data: {
+        notifications,
+        recentUnprocessedOrders,
+      },
+    });
   } catch (error) {
     next(error);
   }

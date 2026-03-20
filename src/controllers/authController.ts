@@ -1,10 +1,9 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import User from '../models/User';
 import { AppError } from '../middleware/error';
-import { AuthRequest } from '../middleware/auth';
 
 // Générer JWT Token
 const generateToken = (id: string): string => {
@@ -21,7 +20,7 @@ const generateToken = (id: string): string => {
 // @route   POST /api/auth/register
 // @access  Public
 export const register = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -75,7 +74,7 @@ export const register = async (
 // @route   POST /api/auth/login
 // @access  Public
 export const login = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -127,7 +126,7 @@ export const login = async (
 // @route   GET /api/auth/me
 // @access  Private
 export const getMe = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -147,7 +146,7 @@ export const getMe = async (
 // @route   PUT /api/auth/profile
 // @access  Private
 export const updateProfile = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -182,7 +181,7 @@ export const updateProfile = async (
 // @route   PUT /api/auth/password
 // @access  Private
 export const updatePassword = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -222,7 +221,7 @@ export const updatePassword = async (
 // @route   PUT /api/auth/favoris/:productId
 // @access  Private
 export const toggleFavorite = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {

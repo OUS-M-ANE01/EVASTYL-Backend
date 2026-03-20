@@ -171,7 +171,7 @@ const createDefaultContent = async (section: string) => {
       title: 'Portez Votre Élégance',
       subtitle: 'au quotidien',
       description: 'Vêtements et bijoux soigneusement sélectionnés pour la femme moderne qui affirme son style avec grâce et assurance.',
-      button1Text: 'Découvrir la collection',
+      button1Text: 'Découvrez nos produits',
       button1Link: 'collections',
       button2Text: 'Voir les bijoux',
       button2Link: 'bijoux',

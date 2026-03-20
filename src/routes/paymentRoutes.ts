@@ -1,16 +1,15 @@
 import express, { Request, Response } from 'express';
-import { initPayment, verifyPayment, nabooWebhook } from '../controllers/paymentController';
+import { initPayment, verifyPayment, refundOrder, nabooWebhook } from '../controllers/paymentController';
 import { protect, authorize } from '../middleware/auth';
 import { getOrderStats } from '../controllers/orderController';
 
 const router = express.Router();
 
-// POST /api/payment/webhook — NabooPay notifie le statut du paiement (sans auth)
+// POST /api/payment/webhook — Webhook NabooPay pour les notifications de paiement (sans auth)
 router.post('/webhook', nabooWebhook);
 
 // GET /api/payment/redirect/success
 // NabooPay redirige ici après paiement réussi, on forward vers le frontend
-// On récupère le naboo_order_id depuis la commande pour le passer au frontend
 router.get('/redirect/success', async (req: Request, res: Response) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const { order_id } = req.query;
@@ -40,15 +39,20 @@ router.get('/redirect/error', (req: Request, res: Response) => {
   res.redirect(`${frontendUrl}/#commande-echec?order_id=${order_id ?? ''}`);
 });
 
-// POST /api/payment/init — initie une transaction NabooPay
+// POST /api/payment/init — Initier une transaction NabooPay
 router.post('/init', protect, initPayment);
 
-// GET /api/payment/verify/:orderId?naboo_id=xxx — vérifie le statut du paiement
+// GET /api/payment/verify/:orderId?naboo_id=xxx — Vérifier le statut du paiement
 // Note: naboo_id est optionnel, le controller le récupère depuis order.notes si absent
 router.get('/verify/:orderId', protect, verifyPayment);
 
-// GET /api/orders/stats — Récupère les stats des commandes (Admin)
-// GET /api/orders/stats — Récupère les stats des commandes (Admin)
+// GET /api/payment/refund/:orderId — Rembourser une commande (Admin) - GET pour compatibilité
+router.get('/refund/:orderId', protect, authorize('admin'), refundOrder);
+
+// POST /api/payment/refund/:orderId — Rembourser une commande (Admin) - POST standard
+router.post('/refund/:orderId', protect, authorize('admin'), refundOrder);
+
+// GET /api/payment/stats — Récupère les stats des commandes (Admin)
 router.get('/stats', protect, authorize('admin'), getOrderStats);
 
 export default router;

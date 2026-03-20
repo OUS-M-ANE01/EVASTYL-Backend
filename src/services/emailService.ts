@@ -1,170 +1,337 @@
 import nodemailer from 'nodemailer';
-import { IOrder } from '../models/Order';
 
+// Configuration du transporteur SMTP
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
+  secure: false, // true pour 465, false pour autres ports
   auth: {
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    pass: process.env.SMTP_PASS, // Mot de passe d'application Gmail
   },
 });
 
-function formatPrice(amount: number) {
-  return new Intl.NumberFormat('fr-SN', { style: 'decimal' }).format(amount) + ' F CFA';
-}
+// Vérifier la configuration
+export const verifyEmailConfig = async (): Promise<boolean> => {
+  try {
+    await transporter.verify();
+    console.log('✅ Configuration email vérifiée avec succès');
+    return true;
+  } catch (error) {
+    console.error('❌ Erreur de configuration email:', error);
+    return false;
+  }
+};
 
-function buildItemsHtml(items: IOrder['items']): string {
-  return items
-    .map(
-      item => `
-      <tr>
-        <td style="padding:10px 8px;border-bottom:1px solid #E8E2DA;">
-          <span style="font-family:'Georgia',serif;font-size:14px;color:#1A1A18;">${item.name}</span>
-        </td>
-        <td style="padding:10px 8px;border-bottom:1px solid #E8E2DA;text-align:center;color:#8C7B6B;font-size:13px;">×${item.quantity}</td>
-        <td style="padding:10px 8px;border-bottom:1px solid #E8E2DA;text-align:right;font-size:13px;color:#1A1A18;">${formatPrice(item.price * item.quantity)}</td>
-      </tr>`
-    )
-    .join('');
-}
-
-function orderConfirmationHtml(order: IOrder): string {
-  const { shippingAddress, items, subtotal, shippingCost, total, orderNumber } = order;
-  const methodLabels: Record<string, string> = {
-    wave: 'Wave',
-    'orange-money': 'Orange Money',
-    'free-money': 'Free Money',
-    expresso: 'Expresso',
-    carte: 'Carte bancaire',
-    cod: 'Paiement à la livraison',
-    paypal: 'PayPal',
-    naboopay: 'NabooPay',
+// Envoyer un email de bienvenue
+export const sendWelcomeEmail = async (email: string, name?: string): Promise<void> => {
+  const mailOptions = {
+    from: `"EvaStyl Newsletter" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: 'Bienvenue dans notre newsletter !',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Bienvenue ${name || 'cher abonné'} !</h2>
+        <p>Merci de vous être inscrit à notre newsletter EvaStyl.</p>
+        <p>Vous recevrez désormais nos dernières actualités, promotions et nouveautés directement dans votre boîte mail.</p>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>Ce que vous recevrez :</strong></p>
+          <ul>
+            <li>Nouvelles collections</li>
+            <li>Offres exclusives</li>
+            <li>Conseils mode</li>
+            <li>Événements spéciaux</li>
+          </ul>
+        </div>
+        <p>Si vous souhaitez vous désabonner, <a href="${process.env.FRONTEND_URL}/newsletter/unsubscribe?email=${email}">cliquez ici</a>.</p>
+        <hr style="margin: 30px 0;">
+        <p style="color: #666; font-size: 12px;">
+          EvaStyl - Mode et Élégance<br>
+          <a href="${process.env.FRONTEND_URL}">Visitez notre site</a>
+        </p>
+      </div>
+    `,
   };
 
-  return `
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Confirmation de commande ASMA</title>
-</head>
-<body style="margin:0;padding:0;background:#FAF7F2;font-family:'Helvetica Neue',Arial,sans-serif;">
+  await transporter.sendMail(mailOptions);
+};
 
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAF7F2;padding:32px 16px;">
-    <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 24px rgba(0,0,0,0.07);">
+// Envoyer une newsletter
+export const sendNewsletter = async (
+  emails: string[],
+  subject: string,
+  content: string
+): Promise<void> => {
+  const mailOptions = {
+    from: `"EvaStyl Newsletter" <${process.env.SMTP_USER}>`,
+    bcc: emails, // Copie cachée pour tous les destinataires
+    subject,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #333;">EvaStyl Newsletter</h1>
+        </div>
+        <div style="line-height: 1.6;">
+          ${content}
+        </div>
+        <hr style="margin: 30px 0;">
+        <div style="text-align: center; color: #666; font-size: 12px;">
+          <p>EvaStyl - Mode et Élégance</p>
+          <p>
+            <a href="${process.env.FRONTEND_URL}">Visitez notre site</a> | 
+            <a href="${process.env.FRONTEND_URL}/newsletter/unsubscribe">Se désabonner</a>
+          </p>
+        </div>
+      </div>
+    `,
+  };
 
-        <!-- En-tête -->
-        <tr>
-          <td style="background:linear-gradient(135deg,#1A1A18 0%,#3A2F25 55%,#8C7B6B 100%);padding:40px 40px 32px;text-align:center;">
-            <p style="margin:0 0 4px;color:#C9A96E;font-size:10px;letter-spacing:6px;text-transform:uppercase;font-weight:600;">ASMA</p>
-            <h1 style="margin:0;font-family:'Georgia',serif;font-size:26px;font-weight:300;color:#ffffff;letter-spacing:1px;">
-              Commande confirmée
-            </h1>
-            <p style="margin:12px 0 0;color:rgba(255,255,255,0.55);font-size:13px;">
-              Merci pour votre achat, ${shippingAddress.prenom} !
-            </p>
-          </td>
-        </tr>
+  await transporter.sendMail(mailOptions);
+};
 
-        <!-- Numéro de commande -->
-        <tr>
-          <td style="background:#FAF7F2;padding:20px 40px;text-align:center;border-bottom:1px solid #E8E2DA;">
-            <p style="margin:0;font-size:12px;color:#8C7B6B;letter-spacing:2px;text-transform:uppercase;">Numéro de commande</p>
-            <p style="margin:6px 0 0;font-family:'Georgia',serif;font-size:22px;color:#1A1A18;font-weight:600;letter-spacing:1px;">${orderNumber}</p>
-          </td>
-        </tr>
+// Envoyer un email de confirmation de désabonnement
+export const sendUnsubscribeConfirmation = async (email: string): Promise<void> => {
+  const mailOptions = {
+    from: `"EvaStyl Newsletter" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: 'Désabonnement confirmé',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Désabonnement confirmé</h2>
+        <p>Vous avez été désabonné avec succès de notre newsletter.</p>
+        <p>Nous sommes désolés de vous voir partir. Si vous changez d'avis, vous pouvez vous réinscrire à tout moment sur notre site.</p>
+        <p style="margin-top: 30px;">
+          <a href="${process.env.FRONTEND_URL}/newsletter" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+            Se réinscrire
+          </a>
+        </p>
+        <hr style="margin: 30px 0;">
+        <p style="color: #666; font-size: 12px;">
+          EvaStyl - Mode et Élégance<br>
+          <a href="${process.env.FRONTEND_URL}">Visitez notre site</a>
+        </p>
+      </div>
+    `,
+  };
 
-        <!-- Articles -->
-        <tr>
-          <td style="padding:32px 40px 16px;">
-            <p style="margin:0 0 16px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8C7B6B;font-weight:600;">Vos articles</p>
-            <table width="100%" cellpadding="0" cellspacing="0">
-              ${buildItemsHtml(items)}
-            </table>
-          </td>
-        </tr>
+  await transporter.sendMail(mailOptions);
+};
 
-        <!-- Totaux -->
-        <tr>
-          <td style="padding:0 40px 32px;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAF7F2;border-radius:8px;padding:16px;border:1px solid #E8E2DA;">
-              <tr>
-                <td style="padding:4px 0;font-size:13px;color:#8C7B6B;">Sous-total</td>
-                <td style="padding:4px 0;font-size:13px;color:#1A1A18;text-align:right;">${formatPrice(subtotal)}</td>
-              </tr>
-              <tr>
-                <td style="padding:4px 0;font-size:13px;color:#8C7B6B;">Livraison</td>
-                <td style="padding:4px 0;font-size:13px;color:#1A1A18;text-align:right;">${shippingCost === 0 ? 'Gratuite' : formatPrice(shippingCost)}</td>
-              </tr>
-              <tr>
-                <td style="padding:12px 0 0;font-size:15px;font-weight:700;color:#1A1A18;border-top:1px solid #E8E2DA;">Total payé</td>
-                <td style="padding:12px 0 0;font-size:15px;font-weight:700;color:#C9A96E;text-align:right;border-top:1px solid #E8E2DA;">${formatPrice(total)}</td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- Adresse & paiement -->
-        <tr>
-          <td style="padding:0 40px 32px;">
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td width="50%" style="vertical-align:top;padding-right:12px;">
-                  <p style="margin:0 0 8px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8C7B6B;font-weight:600;">Livraison à</p>
-                  <p style="margin:0;font-size:13px;color:#1A1A18;line-height:1.6;">
-                    ${shippingAddress.prenom} ${shippingAddress.nom}<br/>
-                    ${shippingAddress.rue}<br/>
-                    ${shippingAddress.ville}, ${shippingAddress.pays}<br/>
-                    ${shippingAddress.telephone}
-                  </p>
-                </td>
-                <td width="50%" style="vertical-align:top;padding-left:12px;">
-                  <p style="margin:0 0 8px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#8C7B6B;font-weight:600;">Mode de paiement</p>
-                  <p style="margin:0;font-size:13px;color:#1A1A18;">${methodLabels[(order as any).paymentMethod] || (order as any).paymentMethod}</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- Pied de page -->
-        <tr>
-          <td style="background:#1A1A18;padding:24px 40px;text-align:center;">
-            <p style="margin:0 0 4px;color:#C9A96E;font-size:10px;letter-spacing:5px;text-transform:uppercase;">ASMA</p>
-            <p style="margin:0;color:rgba(255,255,255,0.4);font-size:11px;">Mode & Bijoux · Dakar, Sénégal</p>
-          </td>
-        </tr>
-
-      </table>
-    </td></tr>
-  </table>
-
-</body>
-</html>`;
-}
-
-export async function sendOrderConfirmationEmail(order: IOrder): Promise<void> {
-  const email = order.shippingAddress?.email;
-
-  if (!email || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    // Pas d'email destinataire ou SMTP non configuré — on ignore silencieusement
-    return;
+export default transporter;
+// Envoyer un email de confirmation de commande
+export const sendOrderConfirmationEmail = async (
+  email: string,
+  orderDetails: {
+    orderId: string;
+    customerName: string;
+    items: Array<{
+      name: string;
+      quantity: number;
+      price: number;
+    }>;
+    total: number;
+    shippingAddress: {
+      prenom: string;
+      nom: string;
+      rue: string;
+      ville: string;
+      telephone: string;
+    };
   }
+): Promise<void> => {
+  const itemsHtml = orderDetails.items
+    .map(
+      (item) => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.name}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">${item.price} XOF</td>
+      </tr>
+    `
+    )
+    .join('');
 
-  try {
-    await transporter.sendMail({
-      from: `"ASMA" <${process.env.SMTP_USER}>`,
-      to: email,
-      subject: `✨ Commande confirmée – ${order.orderNumber}`,
-      html: orderConfirmationHtml(order),
-    });
-    console.log(`[Email] Confirmation envoyée à ${email} pour la commande ${order.orderNumber}`);
-  } catch (err) {
-    // Ne pas bloquer le flux principal si l'email échoue
-    console.error('[Email] Échec envoi confirmation:', err);
-  }
-}
+  const mailOptions = {
+    from: `"EvaStyl" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: `Confirmation de commande #${orderDetails.orderId}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #333;">EvaStyl</h1>
+          <h2 style="color: #28a745;">Commande confirmée !</h2>
+        </div>
+        
+        <p>Bonjour ${orderDetails.customerName},</p>
+        <p>Nous avons bien reçu votre commande et le paiement a été confirmé.</p>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h3>Détails de la commande #${orderDetails.orderId}</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background-color: #e9ecef;">
+                <th style="padding: 10px; text-align: left;">Produit</th>
+                <th style="padding: 10px; text-align: center;">Quantité</th>
+                <th style="padding: 10px; text-align: right;">Prix</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+            <tfoot>
+              <tr style="background-color: #e9ecef; font-weight: bold;">
+                <td colspan="2" style="padding: 10px;">Total</td>
+                <td style="padding: 10px; text-align: right;">${orderDetails.total} XOF</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h4>Adresse de livraison :</h4>
+          <p>
+            ${orderDetails.shippingAddress.prenom} ${orderDetails.shippingAddress.nom}<br>
+            ${orderDetails.shippingAddress.rue}<br>
+            ${orderDetails.shippingAddress.ville}<br>
+            Tél: ${orderDetails.shippingAddress.telephone}
+          </p>
+        </div>
+        
+        <p>Votre commande sera traitée dans les plus brefs délais. Vous recevrez un email de suivi dès l'expédition.</p>
+        
+        <hr style="margin: 30px 0;">
+        <p style="color: #666; font-size: 12px;">
+          EvaStyl - Mode et Élégance<br>
+          <a href="${process.env.FRONTEND_URL}">Visitez notre site</a> | 
+          <a href="${process.env.FRONTEND_URL}/contact">Nous contacter</a>
+        </p>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+// Envoyer un email de contact à l'équipe
+export const sendContactEmail = async (contactData: {
+  nom: string;
+  prenom?: string;
+  email: string;
+  telephone?: string;
+  sujet: string;
+  message: string;
+  dateEnvoi: Date;
+}): Promise<void> => {
+  const mailOptions = {
+    from: `"EvaStyl Contact" <${process.env.SMTP_USER}>`,
+    to: process.env.SMTP_USER, // Envoyer à nous-mêmes
+    subject: `[EvaStyl Contact] ${contactData.sujet}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
+          <h2 style="color: #333; margin: 0;">Nouveau message de contact</h2>
+          <p style="color: #666; margin: 5px 0 0 0;">Reçu le ${contactData.dateEnvoi.toLocaleString('fr-FR')}</p>
+        </div>
+        
+        <div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+          <h3 style="color: #333; border-bottom: 2px solid #f0c14b; padding-bottom: 10px;">
+            Informations du contact
+          </h3>
+          
+          <table style="width: 100%; margin-bottom: 20px;">
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #555;">Nom :</td>
+              <td style="padding: 8px 0;">${contactData.prenom ? contactData.prenom + ' ' : ''}${contactData.nom}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #555;">Email :</td>
+              <td style="padding: 8px 0;"><a href="mailto:${contactData.email}">${contactData.email}</a></td>
+            </tr>
+            ${contactData.telephone ? `
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #555;">Téléphone :</td>
+              <td style="padding: 8px 0;"><a href="tel:${contactData.telephone}">${contactData.telephone}</a></td>
+            </tr>
+            ` : ''}
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #555;">Sujet :</td>
+              <td style="padding: 8px 0;">${contactData.sujet}</td>
+            </tr>
+          </table>
+          
+          <h3 style="color: #333; border-bottom: 2px solid #f0c14b; padding-bottom: 10px;">
+            Message
+          </h3>
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; white-space: pre-wrap;">
+${contactData.message}
+          </div>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 15px; background-color: #e8f4fd; border-radius: 5px;">
+          <p style="margin: 0; font-size: 12px; color: #666;">
+            <strong>Actions rapides :</strong><br>
+            • Répondre : <a href="mailto:${contactData.email}?subject=Re: ${contactData.sujet}">Cliquez ici</a><br>
+            ${contactData.telephone ? `• Appeler : <a href="tel:${contactData.telephone}">${contactData.telephone}</a><br>` : ''}
+            • WhatsApp : <a href="https://wa.me/221781166720?text=Bonjour%20${contactData.prenom || contactData.nom},%20nous%20avons%20reçu%20votre%20message%20concernant%20${encodeURIComponent(contactData.sujet)}">Répondre sur WhatsApp</a>
+          </p>
+        </div>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+// Envoyer un email de confirmation au client
+export const sendContactConfirmation = async (
+  email: string,
+  nom: string
+): Promise<void> => {
+  const mailOptions = {
+    from: `"EvaStyl" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: 'Confirmation de réception - EvaStyl',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #333;">EvaStyl</h1>
+          <h2 style="color: #f0c14b;">Message bien reçu !</h2>
+        </div>
+        
+        <p>Bonjour ${nom},</p>
+        
+        <p>Nous avons bien reçu votre message et nous vous remercions de nous avoir contactés.</p>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="color: #333; margin-top: 0;">Que se passe-t-il maintenant ?</h3>
+          <ul style="color: #666; line-height: 1.6;">
+            <li>Notre équipe examine votre demande</li>
+            <li>Nous vous répondrons dans les <strong>24 heures</strong></li>
+            <li>Pour les demandes urgentes, contactez-nous sur WhatsApp</li>
+          </ul>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a
+            href="https://wa.me/221781166720?text=Bonjour,%20j'ai%20envoyé%20un%20message%20via%20le%20formulaire%20de%20contact"
+            style="display: inline-block; background-color: #25D366; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;"
+          >
+            📱 Nous contacter sur WhatsApp
+          </a>
+        </div>
+        
+        <hr style="margin: 30px 0;">
+        
+        <div style="text-align: center; color: #666; font-size: 12px;">
+          <p>
+            EvaStyl - Mode et Élégance<br>
+            <a href="${process.env.FRONTEND_URL}">Visitez notre site</a> | 
+            <a href="mailto:contact@evastyl.com">contact@evastyl.com</a> | 
+            <a href="tel:+221781166720">+221 78 116 67 20</a>
+          </p>
+        </div>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+};

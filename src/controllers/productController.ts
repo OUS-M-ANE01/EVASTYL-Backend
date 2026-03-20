@@ -3,7 +3,6 @@ import { validationResult } from 'express-validator';
 import Product from '../models/Product';
 import Category from '../models/Category';
 import { AppError } from '../middleware/error';
-import { AuthRequest } from '../middleware/auth';
 
 // @desc    Obtenir tous les produits
 // @route   GET /api/products
@@ -105,7 +104,7 @@ export const getProduct = async (
 // @route   POST /api/products
 // @access  Private/Admin
 export const createProduct = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -146,7 +145,7 @@ export const createProduct = async (
 // @route   PUT /api/products/:id
 // @access  Private/Admin
 export const updateProduct = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -195,7 +194,7 @@ export const updateProduct = async (
 // @route   DELETE /api/products/:id
 // @access  Private/Admin
 export const deleteProduct = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {

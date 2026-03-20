@@ -28,6 +28,10 @@ export interface IOrder extends Document {
   isPaid: boolean;
   paidAt?: Date;
   deliveredAt?: Date;
+  isRefunded?: boolean;
+  refundedAt?: Date;
+  refundAmount?: number;
+  refundReason?: string;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -81,7 +85,7 @@ const orderSchema = new Schema<IOrder>(
     paymentMethod: {
       type: String,
       required: true,
-      enum: ['carte', 'wave', 'orange-money', 'free-money', 'expresso', 'paypal', 'cod', 'naboopay'],
+      enum: ['carte', 'card', 'wave', 'orange-money', 'free-money', 'expresso', 'paypal', 'cod', 'naboopay'],
     },
     subtotal:     { type: Number, required: true, min: 0 },
     shippingCost: { type: Number, required: true, min: 0, default: 0 },
@@ -94,6 +98,10 @@ const orderSchema = new Schema<IOrder>(
     isPaid:      { type: Boolean, default: false },
     paidAt:      Date,
     deliveredAt: Date,
+    isRefunded:  { type: Boolean, default: false },
+    refundedAt:  Date,
+    refundAmount: Number,
+    refundReason: String,
     notes:       String,
   },
   { timestamps: true }

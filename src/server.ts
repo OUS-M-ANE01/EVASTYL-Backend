@@ -22,6 +22,9 @@ import adminRoutes from './routes/adminRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import publicRoutes from './routes/publicRoutes';
 import paymentRoutes from './routes/paymentRoutes';
+import newsletterRoutes from './routes/newsletterRoutes';
+import contactRoutes from './routes/contactRoutes';
+import pageBannerRoutes from './routes/pageBannerRoutes';
 
 // Rate limiters
 import { generalLimiter } from './middleware/rateLimiter';
@@ -79,6 +82,10 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/newsletter', newsletterRoutes);
+app.use('/api/page-banners', pageBannerRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/page-banners', pageBannerRoutes);
 
 // Route santé
 app.get('/health', (req, res) => {

@@ -28,7 +28,7 @@ export interface NabooCustomer {
   phone: string;
 }
 
-export type NabooPaymentMethod = 'WAVE' | 'ORANGE_MONEY' | 'FREE_MONEY' | 'EXPRESSO';
+export type NabooPaymentMethod = 'WAVE' | 'ORANGE_MONEY' | 'FREE_MONEY' | 'EXPRESSO' | 'CARD';
 
 export interface CreateTransactionPayload {
   method_of_payment: NabooPaymentMethod[];
@@ -120,4 +120,40 @@ export async function getNabooTransaction(
     ...data,
     status: (rawStatus as string).toUpperCase() as NabooTransactionStatus['status'],
   };
+}
+
+/**
+ * Rembourse une transaction NabooPay (v2)
+ * @param nabooOrderId - L'ID de la transaction NabooPay à rembourser
+ * @param amount - Montant à rembourser (optionnel, remboursement total si absent)
+ * @param reason - Raison du remboursement (optionnel)
+ */
+export async function refundNabooTransaction(
+  nabooOrderId: string
+): Promise<any> {
+  console.log('[NabooPay] Tentative de remboursement:', {
+    nabooOrderId
+  });
+
+  try {
+    // Selon la doc NabooPay: GET /api/v2/refund/{order_id}
+    const { data } = await axios.get<any>(
+      `${NABOO_BASE}/refund/${nabooOrderId}`,
+      { headers: headers() }
+    );
+
+    console.log('[NabooPay] Remboursement réussi:', JSON.stringify(data, null, 2));
+    return data;
+  } catch (error: any) {
+    console.error('[NabooPay] Erreur remboursement:', error.response?.data || error.message);
+    
+    // Extraire le message d'erreur
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.error || 
+                        error.response?.data || 
+                        error.message || 
+                        'Erreur lors du remboursement NabooPay';
+    
+    throw new Error(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
+  }
 }
