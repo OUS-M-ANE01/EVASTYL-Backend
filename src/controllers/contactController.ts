@@ -73,7 +73,7 @@ export const getContactInfo = async (
 ) => {
   try {
     const contactInfo = {
-      email: 'contact@evastyl.com',
+      email: 'contact@asma.com',
       telephone: '+221 78 116 67 20',
       whatsapp: '+221 78 116 67 20',
       adresse: 'Dakar, Sénégal',
@@ -83,8 +83,8 @@ export const getContactInfo = async (
         dimanche: 'Fermé',
       },
       reseaux_sociaux: {
-        facebook: 'https://facebook.com/evastyl',
-        instagram: 'https://instagram.com/evastyl',
+        facebook: 'https://facebook.com/asma',
+        instagram: 'https://instagram.com/asma',
         whatsapp: 'https://wa.me/221781166720',
       },
     };

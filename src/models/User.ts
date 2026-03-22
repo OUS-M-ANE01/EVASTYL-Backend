@@ -16,6 +16,10 @@ export interface IUser extends Document {
   };
   role: 'client' | 'admin';
   favoris: mongoose.Types.ObjectId[];
+  firebaseUid?: string;
+  isEmailVerified?: boolean;
+  emailVerificationOTP?: string | null;
+  emailVerificationExpires?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -65,10 +69,26 @@ const userSchema = new Schema<IUser>(
       enum: ['client', 'admin'],
       default: 'client',
     },
+    firebaseUid: {
+      type: String,
+      default: '',
+    },
     favoris: [{
       type: Schema.Types.ObjectId,
       ref: 'Product',
     }],
+    emailVerificationOTP: {
+      type: String,
+      default: null,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      default: null,
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

@@ -1,3 +1,101 @@
+// @desc    Renvoyer l'OTP de vérification email
+// @route   POST /api/auth/resend-otp
+// @access  Public
+export const resendEmailOTP = async (req: Request, res: Response, next: NextFunction) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ success: false, message: 'Email requis.' });
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ success: false, message: 'Utilisateur introuvable.' });
+    if (user.isEmailVerified) return res.status(400).json({ success: false, message: 'Email déjà vérifié.' });
+    // Générer un nouvel OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+    user.emailVerificationOTP = otp;
+    user.emailVerificationExpires = otpExpires;
+    await user.save();
+    const { sendEmailOTP } = require('../services/emailService');
+    await sendEmailOTP(email, otp);
+    res.json({ success: true, message: 'Un nouveau code a été envoyé à votre email.' });
+  } catch (error) {
+    next(error);
+  }
+};
+// @desc    Vérifier l'OTP email
+// @route   POST /api/auth/verify-email
+// @access  Public
+export const verifyEmailOTP = async (req: Request, res: Response, next: NextFunction) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    return res.status(400).json({ success: false, message: 'Email et code requis.' });
+  }
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ success: false, message: 'Utilisateur introuvable.' });
+    if (user.isEmailVerified) return res.status(400).json({ success: false, message: 'Email déjà vérifié.' });
+    if (!user.emailVerificationOTP || !user.emailVerificationExpires) {
+      return res.status(400).json({ success: false, message: 'Aucun code à valider.' });
+    }
+    if (user.emailVerificationOTP !== otp) {
+      return res.status(400).json({ success: false, message: 'Code incorrect.' });
+    }
+    if (user.emailVerificationExpires < new Date()) {
+      return res.status(400).json({ success: false, message: 'Code expiré.' });
+    }
+    user.isEmailVerified = true;
+    user.emailVerificationOTP = null;
+    user.emailVerificationExpires = null;
+    await user.save();
+    res.json({ success: true, message: 'Email vérifié avec succès.' });
+  } catch (error) {
+    next(error);
+  }
+};
+// @desc    Connexion sociale Google (Firebase)
+// @route   POST /api/auth/firebase
+// @access  Public
+import admin from '../config/firebase';
+
+export const firebaseLogin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { token } = req.body;
+  if (!token) {
+    return res.status(400).json({ success: false, message: 'Token manquant' });
+  }
+  try {
+    // Vérifie le token Firebase
+    const decoded = await admin.auth().verifyIdToken(token);
+    const { email, name, uid } = decoded;
+
+    // Recherche ou création de l'utilisateur
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = await User.create({
+        email,
+        prenom: name?.split(' ')[0] || '',
+        nom: name?.split(' ')[1] || '',
+        password: uid, // mot de passe fictif
+        role: 'client',
+        firebaseUid: uid,
+      });
+    } else {
+      // Synchronise UID Firebase si besoin
+      if (!user.firebaseUid || user.firebaseUid !== uid) {
+        user.firebaseUid = uid;
+        await user.save();
+      }
+    }
+
+    // Génère un JWT
+    const tokenJwt = generateToken(user._id.toString());
+    res.json({ success: true, token: tokenJwt, user });
+  } catch (err) {
+    res.status(401).json({ success: false, message: 'Token Firebase invalide' });
+  }
+};
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
@@ -41,16 +139,24 @@ export const register = async (
       return next(new AppError('Cet email est déjà utilisé', 400));
     }
 
-    // Créer l'utilisateur
+    // Générer un OTP 6 chiffres
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+
+    // Créer l'utilisateur avec OTP
     const user = await User.create({
       prenom,
       nom,
       email,
       password,
+      emailVerificationOTP: otp,
+      emailVerificationExpires: otpExpires,
+      isEmailVerified: false,
     });
 
-    // Générer token
-    const token = generateToken(user._id.toString());
+    // Envoi de l'OTP par email
+    const { sendEmailOTP } = require('../services/emailService');
+    await sendEmailOTP(email, otp);
 
     res.status(201).json({
       success: true,
@@ -62,7 +168,8 @@ export const register = async (
           email: user.email,
           role: user.role,
         },
-        token,
+        status: 'pending_verification',
+        message: 'Un code de vérification a été envoyé à votre adresse email.'
       },
     });
   } catch (error) {

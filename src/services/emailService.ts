@@ -1,3 +1,27 @@
+// Envoyer un OTP de vérification
+export const sendEmailOTP = async (email: string, otp: string): Promise<void> => {
+  const mailOptions = {
+    from: `"AS'MA" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: "Votre code de vérification AS'MA",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #C9A84C;">Vérification de votre adresse email</h2>
+        <p>Bonjour,</p>
+        <p>Voici votre code de vérification pour finaliser votre inscription :</p>
+        <div style="font-size: 2rem; font-weight: bold; letter-spacing: 0.2em; color: #2C2C2C; margin: 24px 0;">${otp}</div>
+        <p>Ce code est valable 10 minutes.</p>
+        <p>Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email.</p>
+        <hr style="margin: 30px 0;">
+        <p style="color: #666; font-size: 12px;">
+          AS'MA - Mode et Élégance<br>
+          <a href="${process.env.FRONTEND_URL}">Visitez notre site</a>
+        </p>
+      </div>
+    `,
+  };
+  await transporter.sendMail(mailOptions);
+};
 import nodemailer from 'nodemailer';
 
 // Configuration du transporteur SMTP
@@ -26,13 +50,13 @@ export const verifyEmailConfig = async (): Promise<boolean> => {
 // Envoyer un email de bienvenue
 export const sendWelcomeEmail = async (email: string, name?: string): Promise<void> => {
   const mailOptions = {
-    from: `"EvaStyl Newsletter" <${process.env.SMTP_USER}>`,
+    from: `"AS'MA Newsletter" <${process.env.SMTP_USER}>`,
     to: email,
-    subject: 'Bienvenue dans notre newsletter !',
+    subject: "Bienvenue dans notre newsletter !",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Bienvenue ${name || 'cher abonné'} !</h2>
-        <p>Merci de vous être inscrit à notre newsletter EvaStyl.</p>
+        <p>Merci de vous être inscrit à notre newsletter AS'MA.</p>
         <p>Vous recevrez désormais nos dernières actualités, promotions et nouveautés directement dans votre boîte mail.</p>
         <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
           <p><strong>Ce que vous recevrez :</strong></p>
@@ -46,7 +70,7 @@ export const sendWelcomeEmail = async (email: string, name?: string): Promise<vo
         <p>Si vous souhaitez vous désabonner, <a href="${process.env.FRONTEND_URL}/newsletter/unsubscribe?email=${email}">cliquez ici</a>.</p>
         <hr style="margin: 30px 0;">
         <p style="color: #666; font-size: 12px;">
-          EvaStyl - Mode et Élégance<br>
+          AS'MA - Mode et Élégance<br>
           <a href="${process.env.FRONTEND_URL}">Visitez notre site</a>
         </p>
       </div>
@@ -69,14 +93,14 @@ export const sendNewsletter = async (
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #333;">EvaStyl Newsletter</h1>
+          <h1 style="color: #333;">AS'MA Newsletter</h1>
         </div>
         <div style="line-height: 1.6;">
           ${content}
         </div>
         <hr style="margin: 30px 0;">
         <div style="text-align: center; color: #666; font-size: 12px;">
-          <p>EvaStyl - Mode et Élégance</p>
+          <p>AS'MA - Mode et Élégance</p>
           <p>
             <a href="${process.env.FRONTEND_URL}">Visitez notre site</a> | 
             <a href="${process.env.FRONTEND_URL}/newsletter/unsubscribe">Se désabonner</a>
@@ -92,7 +116,7 @@ export const sendNewsletter = async (
 // Envoyer un email de confirmation de désabonnement
 export const sendUnsubscribeConfirmation = async (email: string): Promise<void> => {
   const mailOptions = {
-    from: `"EvaStyl Newsletter" <${process.env.SMTP_USER}>`,
+    from: `"AS'MA Newsletter" <${process.env.SMTP_USER}>`,
     to: email,
     subject: 'Désabonnement confirmé',
     html: `
@@ -152,13 +176,13 @@ export const sendOrderConfirmationEmail = async (
     .join('');
 
   const mailOptions = {
-    from: `"EvaStyl" <${process.env.SMTP_USER}>`,
+    from: `"AS'MA" <${process.env.SMTP_USER}>`,
     to: email,
     subject: `Confirmation de commande #${orderDetails.orderId}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #333;">EvaStyl</h1>
+          <h1 style="color: #333;">AS'MA</h1>
           <h2 style="color: #28a745;">Commande confirmée !</h2>
         </div>
         
@@ -201,7 +225,7 @@ export const sendOrderConfirmationEmail = async (
         
         <hr style="margin: 30px 0;">
         <p style="color: #666; font-size: 12px;">
-          EvaStyl - Mode et Élégance<br>
+          AS'MA - Mode et Élégance<br>
           <a href="${process.env.FRONTEND_URL}">Visitez notre site</a> | 
           <a href="${process.env.FRONTEND_URL}/contact">Nous contacter</a>
         </p>
@@ -222,9 +246,9 @@ export const sendContactEmail = async (contactData: {
   dateEnvoi: Date;
 }): Promise<void> => {
   const mailOptions = {
-    from: `"EvaStyl Contact" <${process.env.SMTP_USER}>`,
+    from: `"AS'MA Contact" <${process.env.SMTP_USER}>`,
     to: process.env.SMTP_USER, // Envoyer à nous-mêmes
-    subject: `[EvaStyl Contact] ${contactData.sujet}`,
+    subject: `[AS'MA Contact] ${contactData.sujet}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
@@ -287,13 +311,13 @@ export const sendContactConfirmation = async (
   nom: string
 ): Promise<void> => {
   const mailOptions = {
-    from: `"EvaStyl" <${process.env.SMTP_USER}>`,
+    from: `"AS'MA" <${process.env.SMTP_USER}>`,
     to: email,
-    subject: 'Confirmation de réception - EvaStyl',
+    subject: "Confirmation de réception - AS'MA",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #333;">EvaStyl</h1>
+          <h1 style="color: #333;">AS'MA</h1>
           <h2 style="color: #f0c14b;">Message bien reçu !</h2>
         </div>
         
@@ -323,9 +347,9 @@ export const sendContactConfirmation = async (
         
         <div style="text-align: center; color: #666; font-size: 12px;">
           <p>
-            EvaStyl - Mode et Élégance<br>
+            AS'MA - Mode et Élégance<br>
             <a href="${process.env.FRONTEND_URL}">Visitez notre site</a> | 
-            <a href="mailto:contact@evastyl.com">contact@evastyl.com</a> | 
+            <a href="mailto:contact@asma.com">contact@asma.com</a> | 
             <a href="tel:+221781166720">+221 78 116 67 20</a>
           </p>
         </div>

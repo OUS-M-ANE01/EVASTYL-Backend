@@ -5,6 +5,9 @@ import compression from 'compression';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import http from 'http';
+import mongoSanitize from 'express-mongo-sanitize';
+// @ts-ignore - xss-clean n'a pas de types officiels
+import xss from 'xss-clean';
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -50,9 +53,15 @@ app.use(
   })
 );
 
-// Body parser
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Body parser avec limite de taille
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Sanitize data - Protection contre NoSQL injection
+app.use(mongoSanitize());
+
+// Sanitize data - Protection contre XSS
+app.use(xss());
 
 // Logger (en développement seulement)
 if (process.env.NODE_ENV === 'development') {
@@ -121,6 +130,7 @@ server.listen(PORT, () => {
   ║   🌍 Mode: ${process.env.NODE_ENV || 'development'}              ║
   ║   📡 URL: http://localhost:${PORT}        ║
   ║   🔌 WebSocket: Actif                  ║
+  ║   🔒 Sécurité: Helmet + Sanitize       ║
   ║                                        ║
   ╚════════════════════════════════════════╝
   `);
