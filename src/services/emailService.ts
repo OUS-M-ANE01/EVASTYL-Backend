@@ -295,7 +295,7 @@ ${contactData.message}
             <strong>Actions rapides :</strong><br>
             • Répondre : <a href="mailto:${contactData.email}?subject=Re: ${contactData.sujet}">Cliquez ici</a><br>
             ${contactData.telephone ? `• Appeler : <a href="tel:${contactData.telephone}">${contactData.telephone}</a><br>` : ''}
-            • WhatsApp : <a href="https://wa.me/221781166720?text=Bonjour%20${contactData.prenom || contactData.nom},%20nous%20avons%20reçu%20votre%20message%20concernant%20${encodeURIComponent(contactData.sujet)}">Répondre sur WhatsApp</a>
+            • WhatsApp : <a href="https://wa.me/221787965132?text=Bonjour%20${contactData.prenom || contactData.nom},%20nous%20avons%20reçu%20votre%20message%20concernant%20${encodeURIComponent(contactData.sujet)}">Répondre sur WhatsApp</a>
           </p>
         </div>
       </div>
@@ -336,7 +336,7 @@ export const sendContactConfirmation = async (
         
         <div style="text-align: center; margin: 30px 0;">
           <a
-            href="https://wa.me/221781166720?text=Bonjour,%20j'ai%20envoyé%20un%20message%20via%20le%20formulaire%20de%20contact"
+            href="https://wa.me/221787965132?text=Bonjour,%20j'ai%20envoyé%20un%20message%20via%20le%20formulaire%20de%20contact"
             style="display: inline-block; background-color: #25D366; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;"
           >
             📱 Nous contacter sur WhatsApp
@@ -350,7 +350,7 @@ export const sendContactConfirmation = async (
             AS'MA - Mode et Élégance<br>
             <a href="${process.env.FRONTEND_URL}">Visitez notre site</a> | 
             <a href="mailto:contact@asma.com">contact@asma.com</a> | 
-            <a href="tel:+221781166720">+221 78 116 67 20</a>
+            <a href="tel:+221787965132">+221 78 796 51 32</a>
           </p>
         </div>
       </div>

@@ -74,8 +74,8 @@ export const getContactInfo = async (
   try {
     const contactInfo = {
       email: 'contact@asma.com',
-      telephone: '+221 78 116 67 20',
-      whatsapp: '+221 78 116 67 20',
+      telephone: '+221 78 796 51 32',
+      whatsapp: '+221 78 796 51 32',
       adresse: 'Dakar, Sénégal',
       horaires: {
         lundi_vendredi: '9h00 - 18h00',
@@ -85,7 +85,7 @@ export const getContactInfo = async (
       reseaux_sociaux: {
         facebook: 'https://facebook.com/asma',
         instagram: 'https://instagram.com/asma',
-        whatsapp: 'https://wa.me/221781166720',
+        whatsapp: 'https://wa.me/221787965132',
       },
     };
 
